@@ -222,6 +222,26 @@ After all tasks complete:
 4. If `superpowers:finishing-a-development-branch` is available, use it
 5. Otherwise: create PR, present summary to user
 
+### Archive Plan Files
+
+After the PR is created (or merged) and all validation is complete:
+
+1. Create the archive directory if it doesn't exist:
+   ```bash
+   mkdir -p docs/plans/completed
+   ```
+2. Move both the plan file and the design doc to the archive:
+   ```bash
+   git mv docs/plans/YYYY-MM-DD-<topic>-plan.md docs/plans/completed/
+   git mv docs/plans/YYYY-MM-DD-<topic>-design.md docs/plans/completed/
+   ```
+3. Commit the archive move:
+   ```bash
+   git commit -m "chore: archive completed plan — [topic]"
+   ```
+
+This keeps `docs/plans/` clean for active work while preserving completed plans for reference. Do NOT archive until the PR is created and all validation has passed — the plan file must remain in place during execution for resumability.
+
 ## Resuming an Interrupted Execution
 
 If a session is interrupted (crash, context limit, user absence):
