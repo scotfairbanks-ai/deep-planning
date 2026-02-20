@@ -91,6 +91,15 @@ Create an isolated workspace for the implementation. If `superpowers:using-git-w
 
 Never start implementation on main/master without explicit user consent.
 
+## Orchestrator Context Management
+
+The orchestrator runs in a single session dispatching many subagents. For large plans (10+ tasks), context can accumulate. To prevent exhaustion:
+
+- After each task cycle (implement + reviews), **summarize the outcome in one line** (e.g., "Task 3: COMPLETE, all reviews passed, SHA abc123") and do not retain full subagent reports
+- The plan file's COMPLETE markers serve as **persistent state** — if you lose context, re-read the plan file to reconstruct progress
+- Refer to the plan file by path, not by quoting its contents
+- If context pressure builds, re-read only the current task from the plan file, not the entire plan
+
 ## Step 3: Execute Tasks
 
 For each task:
@@ -137,7 +146,7 @@ If a subagent hits its turn limit without completing, treat as a failure and fol
 
 Dispatch a `general-purpose` Task agent using `./spec-reviewer-prompt.md` template.
 
-The spec reviewer reads the plan file, finds the task's acceptance criteria, and verifies the actual code against them. Nothing more, nothing less.
+The spec reviewer reads the plan file, finds the task's acceptance criteria, and verifies the actual code against them. For High-risk tasks or tasks sharing files with previous tasks, the spec reviewer also spot-checks previous tasks' acceptance criteria for interference.
 
 **If issues found:** Dispatch a new implementer subagent to fix the specific issues, then re-run spec review.
 
@@ -182,7 +191,12 @@ After all reviews pass AND regression tests pass:
    ```markdown
    **Status:** COMPLETE | SHA: {commit_sha} | Reviewed: spec, quality[, framework]
    ```
-3. Commit the plan file update: `"chore: mark Task N complete in plan"`
+3. **Plan file integrity check:** After saving, re-read the plan file and verify:
+   - All `### Task N:` headers are still present and correctly numbered
+   - All previous COMPLETE markers are intact
+   - The file parses cleanly (no corrupted markdown, no broken headers)
+   - If any integrity issue is found, restore from the last git commit and re-apply the marker
+4. Commit the plan file update: `"chore: mark Task N complete in plan"`
 
 This enables resumability — if the session is interrupted, a new session can scan the plan file for completion markers and resume from the first incomplete task.
 

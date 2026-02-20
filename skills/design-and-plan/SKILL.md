@@ -346,34 +346,36 @@ Write to `docs/plans/YYYY-MM-DD-<topic>-plan.md` with this header:
 The plan review presented to the user must be **brief, code-free, and easy to read.** The user may not be a developer. Do NOT include code snippets, file contents, or technical implementation details in the review summary. Focus on WHAT is changing and WHY.
 </IMPORTANT>
 
-### Internal validation (do silently, fix issues before presenting)
+### Parallel validation subagents
 
-Read the saved plan file back from disk. Check for:
+Dispatch three validation subagents **in parallel** — they are independent and read only the saved plan file and design doc:
 
-1. **Missing error handling** — Every external call, user input, and file operation has a failure path
-2. **Missing tests** — Every acceptance criterion has a corresponding test (both positive and negative)
-3. **Unclear acceptance criteria** — Nothing subjective ("should work well"), everything verifiable
-4. **Context gaps** — Tasks reference information not included in that task
-5. **Ordering issues** — Dependencies are explicit and correct
-6. **Conflicting criteria** — No two acceptance criteria (within a task or across tasks) contradict each other
-7. **Missing end-user simulation** — User-facing tasks have tests that simulate real user journeys
-8. **Missing negative tests** — Security-sensitive or input-handling tasks have "should NOT" test cases
-9. **Framework constraint compliance** — If Phase 2b identified constraints, tasks follow them
-10. **Risk distribution** — High-risk tasks have proportionally more thorough test coverage
-11. **Design coverage** — Every numbered design element (D1, D2, etc.) maps to at least one task. Cross-reference the design doc against the task list. Flag any uncovered elements.
-12. **Gap coverage** — Every finding from Phase 3 gap analysis is addressed by at least one acceptance criterion. If a gap finding has no corresponding criterion, add one or document why it's not applicable.
+| Subagent | Template | What It Checks |
+|----------|----------|----------------|
+| **Coverage verifier** | `./coverage-verifier-prompt.md` | Every design element maps to a task, every gap finding maps to a criterion, framework constraints are enforced |
+| **Plan quality checker** | `./plan-quality-checker-prompt.md` | Criteria clarity, self-containment, dependency ordering, conflicts, error handling, risk distribution, step quality |
+| **Test strategy auditor** | `./test-strategy-auditor-prompt.md` | Criterion-to-test mapping, negative tests, simulation tests, test isolation, edge cases, data quality |
 
-If issues found: fix them in the saved plan file and re-validate. Repeat until clean.
+All three run simultaneously. Wait for all three to complete before proceeding.
 
-### Transparency on internal fixes
+### Merge findings and fix
 
-If internal validation makes any changes to the plan:
-1. Track all modifications made during validation
+1. Collect reports from all three subagents
+2. Deduplicate any overlapping findings
+3. Fix ALL critical and important issues by updating the plan file
+4. If fixes add new tasks, criteria, or tests — re-save the plan file
+5. If fixes are extensive (new tasks added, criteria rewritten), consider re-running the affected validator to confirm the fix
+
+### Transparency on fixes
+
+If any changes were made to the plan during validation:
+1. Track all modifications
 2. Present a "Changes made during review" section BEFORE the task summary:
    - "Added missing error handling criterion to Task 3"
    - "Clarified ambiguous acceptance criterion in Task 7"
    - "Added negative test requirement to Task 5"
    - "Added Task 9 to cover uncovered design element D3"
+   - "Fixed dependency ordering between Task 4 and Task 6"
 3. User must acknowledge these changes as part of the approval gate
 
 ### Present to user (brief, no code)

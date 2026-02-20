@@ -63,6 +63,19 @@ Tests are not just "present" — they must actually work:
 - Check that test data is realistic (no Math.random(), no placeholder "test" values)
 - Check that tests exercise real code paths (not just mocking everything)
 
+## Cross-Task Interference Check (High-Risk Tasks Only)
+
+If this task is marked as **Risk: High** in the plan, or if it modifies files that were also modified by previous tasks:
+
+1. Identify which previous tasks share modified files with this task
+2. Read those previous tasks' acceptance criteria from the plan
+3. Spot-check: does this task's implementation violate any of those criteria?
+4. If a previous task's criterion is broken, report it as a finding — even if the previous task's tests still pass (the tests may be too weak to catch it)
+
+This catches behavioral regressions that test suites miss when previous tests are insufficiently thorough.
+
+Skip this section for Low/Medium risk tasks that don't share files with previous tasks.
+
 ## Report
 
 - **PASS** — All acceptance criteria verified in code. List each criterion and where it's implemented (file:line). List each test and what it covers.
@@ -82,3 +95,4 @@ Tests are not just "present" — they must actually work:
 | `{PLAN_FILE_PATH}` | Path to the implementation plan file |
 | `{N}` | Task number |
 | `{TASK_NAME}` | Task name |
+| `{RISK_LEVEL}` | Task risk level (Low/Medium/High) from the plan |
