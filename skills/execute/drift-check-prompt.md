@@ -39,6 +39,22 @@ You are checking whether the implementation is still aligned with the original d
   - What was actually built
   - Which tasks contributed to the drift
   - Recommendation: realign to design, or update design to match implementation
+
+## If Drift is Approved as Intentional
+
+When the orchestrator and user decide that a divergence is intentional and should be kept, recommend specific design doc updates:
+
+For each approved divergence, specify:
+- Which section of the design doc needs updating
+- What the current text says
+- What it should say to match the implementation
+- Suggested addition to a "Design Revisions" section at the bottom of the design doc:
+  ```
+  ## Design Revisions
+  - [Date] — [What changed]: [Why — brief justification]
+  ```
+
+This keeps the design doc as a living document that accurately reflects the implementation.
 ```
 
 ## Orchestrator Fills In

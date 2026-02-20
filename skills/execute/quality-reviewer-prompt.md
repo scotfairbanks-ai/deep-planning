@@ -27,11 +27,27 @@ You are reviewing code quality for a task that has already passed spec complianc
 - No swallowed errors (empty catch blocks)
 - Failure paths are tested
 
-**Tests:**
+**Performance (flag obvious issues):**
+- No O(n²) or worse operations on potentially large datasets
+- No unnecessary repeated computations inside loops
+- No missing pagination for unbounded data fetches
+- No blocking operations on main thread / UI thread
+
+**Test quality:**
 - Tests verify behavior, not implementation details
 - Tests don't over-mock (testing mocks instead of code)
 - Edge cases from acceptance criteria are covered
 - No flaky patterns (hardcoded timeouts, race conditions, order-dependent)
+- Tests use realistic data (no Math.random(), no placeholder values)
+- Tests would fail if the implementation were removed (not tautological)
+- End-user simulation tests mirror real user behavior (if applicable)
+- Negative tests enforce what should NOT happen (if applicable)
+
+**Test isolation:**
+- Tests don't depend on execution order
+- Tests don't share mutable state
+- Each test can run independently
+- Test cleanup is proper (no leaked resources, no side effects)
 
 **Security (if applicable):**
 - No hardcoded secrets or credentials
@@ -42,7 +58,7 @@ You are reviewing code quality for a task that has already passed spec complianc
 
 Rate each issue by severity:
 - **Critical:** Bugs, security issues, data loss risks — must fix
-- **Important:** Missing error handling, poor patterns, test gaps — should fix
+- **Important:** Missing error handling, poor patterns, test gaps, performance problems — should fix
 - **Minor:** Naming, style, minor improvements — note but don't block
 
 **Assessment:**
