@@ -13,6 +13,14 @@ Turn an idea into a validated design and detailed implementation plan in one con
 Do NOT write any code, scaffold any project, or take any implementation action during this skill. This skill produces documents, not code.
 </HARD-GATE>
 
+## Context Window Management
+
+This skill runs in a single session across many phases. To prevent context exhaustion:
+
+- **Save artifacts to files as soon as each phase completes** — don't hold everything in memory until the end
+- **After saving a file, refer to it by path** — don't repeat its contents in conversation
+- The save points are marked with `SAVE TO DISK` below
+
 ## When to Use
 
 - New feature requiring architectural decisions
@@ -34,17 +42,21 @@ digraph process {
 
     "Phase 1: EXPLORE" [shape=box];
     "Phase 2: DESIGN" [shape=box];
+    "SAVE design + wireframes" [shape=note];
     "Phase 3: GAP ANALYSIS" [shape=box];
     "Phase 4: WRITE PLAN" [shape=box];
+    "SAVE plan" [shape=note];
     "Phase 5: PLAN REVIEW" [shape=box];
-    "Phase 6: SAVE" [shape=doublecircle];
+    "Phase 6: FINALIZE" [shape=doublecircle];
 
     "Phase 1: EXPLORE" -> "Phase 2: DESIGN";
-    "Phase 2: DESIGN" -> "Phase 3: GAP ANALYSIS";
+    "Phase 2: DESIGN" -> "SAVE design + wireframes";
+    "SAVE design + wireframes" -> "Phase 3: GAP ANALYSIS";
     "Phase 3: GAP ANALYSIS" -> "Phase 4: WRITE PLAN";
-    "Phase 4: WRITE PLAN" -> "Phase 5: PLAN REVIEW";
+    "Phase 4: WRITE PLAN" -> "SAVE plan";
+    "SAVE plan" -> "Phase 5: PLAN REVIEW";
     "Phase 5: PLAN REVIEW" -> "Phase 4: WRITE PLAN" [label="issues found"];
-    "Phase 5: PLAN REVIEW" -> "Phase 6: SAVE" [label="clean"];
+    "Phase 5: PLAN REVIEW" -> "Phase 6: FINALIZE" [label="clean"];
 }
 ```
 
@@ -107,34 +119,48 @@ These constraints are included in the design doc under a **"Framework Constraint
 
 ### 2c: Wireframes and Diagrams
 
-Create visual documentation to align understanding between AI and user. This is saved as a **separate file** (see Phase 6).
+Create visual documentation to align understanding between AI and user. Pick the **2-3 most relevant diagram types** for this specific feature — not every feature needs every diagram type.
 
-**For every design, produce the relevant diagram types:**
+**Diagram types (choose what's relevant):**
 
-**Always include (when applicable):**
-- **Wireframes** — ASCII or descriptive layout mockups for every new/modified screen or component. Show element placement, hierarchy, and spacing. Include all states (loading, empty, error, success, partial data).
-- **User flow diagrams** — Step-by-step paths a user takes through the feature. Show decision points, branches, and endpoints.
+| Diagram | When to use |
+|---------|------------|
+| **Wireframes** | Any new/modified screen or UI component — show layout, hierarchy, all states |
+| **User flow** | Features with multi-step user journeys or decision points |
+| **Data flow** | Features involving data moving between frontend, backend, APIs, storage |
+| **Integration diagram** | Features connecting to external services, APIs, or databases |
+| **Architecture diagram** | Features adding new system components or changing structure |
+| **State transition** | Features with complex state machines (order status, multi-step flows) |
+| **Sequence diagram** | Complex multi-party interactions (user → frontend → backend → external) |
+| **Navigation flow** | Changes to app navigation, tab structure, or routing |
 
-**Include when the change involves system interactions:**
-- **Data flow diagrams** — How data moves between components, services, APIs, and storage. Show request/response patterns.
-- **Integration diagrams** — How the new feature connects to existing systems, APIs, databases, and third-party services. Show boundaries and protocols.
-- **Architecture diagrams** — Component-level view of how new pieces fit into the existing system structure.
+**Rules:**
+- Use ASCII art, Mermaid syntax, or structured markdown tables
+- Keep diagrams readable — the goal is alignment with a non-technical user
+- Present each diagram and get approval before proceeding
+- For UI features: wireframes + user flow are almost always needed
+- For backend features: data flow + integration diagram are most useful
 
-**Include when helpful for the specific design:**
-- **State transition diagrams** — For features with complex state (e.g., order status, multi-step flows, connection states)
-- **Sequence diagrams** — For multi-step interactions between user, frontend, backend, and external services
-- **Navigation flow diagrams** — For changes affecting app navigation structure or tab architecture
-- **Error handling flow** — For features with multiple failure modes showing how each error is handled and what the user sees
+**GATE:** User explicitly approves the complete design (including diagrams) before proceeding.
 
-**Diagram format:** Use ASCII art, Mermaid syntax, or structured markdown tables. Keep diagrams readable — the goal is alignment with the user, not technical precision.
+### `SAVE TO DISK` — Save design doc and wireframes
 
-**Present each diagram to the user** and get approval before proceeding. The user may not be technical — diagrams should be understandable without coding knowledge.
+**Immediately after the user approves the design, save two files:**
 
-**GATE:** User explicitly approves the complete design (including all diagrams) before proceeding.
+1. **Design doc:** Write to `docs/plans/YYYY-MM-DD-<topic>-design.md`
+   - Architecture decisions, component design, data flow, error handling, framework constraints
+2. **Wireframes:** Write to `docs/plans/YYYY-MM-DD-<topic>-wireframes.md`
+   - All diagrams from Phase 2c, organized by type, labeled with related tasks/features
+
+**Why now:** These files can be large. Saving them frees context for Phases 3-5. From this point forward, refer to them by file path — don't repeat their contents.
+
+For backend-only features with no diagrams, skip the wireframes file.
 
 ## Phase 3: GAP ANALYSIS
 
-Two mandatory review passes over the approved design. Present findings after each pass and get user input.
+Two mandatory review passes over the approved design. Refer to the saved design doc by path if needed — don't re-read the whole file into context.
+
+Present findings after each pass and get user input.
 
 **Pass 1 — Edge cases and error states:**
 - What inputs can be invalid? How are they handled?
@@ -149,7 +175,9 @@ Two mandatory review passes over the approved design. Present findings after eac
 - What needs to change in tests, config, or deployment?
 - Are any acceptance criteria potentially conflicting with each other?
 
-**GATE:** User reviews and approves all gap analysis findings. Any new requirements are added to the design.
+**After gap analysis:** Update the saved design doc with any new requirements or changes. Commit the update.
+
+**GATE:** User reviews and approves all gap analysis findings.
 
 ## Phase 4: WRITE PLAN
 
@@ -206,63 +234,11 @@ Break the design into implementation tasks. Each task MUST be self-contained:
 - **Never use fake data, Math.random(), or placeholder values** in tests — use realistic fixtures or factory functions with deterministic data
 - **Framework constraints** from Phase 2b should inform test strategy (e.g., React component tests should verify re-render behavior, not just output)
 
-**GATE:** Do not proceed to review until all tasks are written.
+### `SAVE TO DISK` — Save plan file
 
-## Phase 5: PLAN REVIEW
+**Immediately after writing all tasks, save the plan file:**
 
-<IMPORTANT>
-The plan review presented to the user must be **brief, code-free, and easy to read.** The user may not be a developer. Do NOT include code snippets, file contents, or technical implementation details in the review summary. Focus on WHAT is changing and WHY.
-</IMPORTANT>
-
-### Internal validation (do silently, fix issues before presenting)
-
-Check the full plan for:
-
-1. **Missing error handling** — Every external call, user input, and file operation has a failure path
-2. **Missing tests** — Every acceptance criterion has a corresponding test (both positive and negative)
-3. **Unclear acceptance criteria** — Nothing subjective ("should work well"), everything verifiable
-4. **Context gaps** — Tasks reference information not included in that task
-5. **Ordering issues** — Dependencies are explicit and correct
-6. **Conflicting criteria** — No two acceptance criteria (within a task or across tasks) contradict each other
-7. **Missing end-user simulation** — User-facing tasks have tests that simulate real user journeys
-8. **Missing negative tests** — Security-sensitive or input-handling tasks have "should NOT" test cases
-9. **Framework constraint compliance** — If Phase 2b identified constraints, tasks follow them
-10. **Risk distribution** — High-risk tasks have proportionally more thorough test coverage
-
-Fix any issues found before presenting to the user. Repeat until clean.
-
-### Present to user (brief, no code)
-
-Present the plan review as a concise summary for each task:
-
-```markdown
-**Task N: [Name]** (Complexity: X | Risk: X)
-- **What:** [One sentence — what this task builds or changes]
-- **Why:** [One sentence — why it's needed]
-- **Key details:** [Any important notes — dependencies, risk factors, things the user should know]
-```
-
-Follow with a brief overall summary:
-- Total tasks and estimated complexity distribution
-- Any recommendations or trade-offs the user should be aware of
-- Diagram references ("see wireframes doc for screen layouts")
-
-**GATE:** User confirms the plan is ready.
-
-## Phase 6: SAVE
-
-Save three files:
-
-1. **Design doc:** `docs/plans/YYYY-MM-DD-<topic>-design.md`
-2. **Wireframes and diagrams:** `docs/plans/YYYY-MM-DD-<topic>-wireframes.md`
-3. **Implementation plan:** `docs/plans/YYYY-MM-DD-<topic>-plan.md`
-
-The **wireframes file** contains all visual documentation from Phase 2c:
-- All wireframes, flow diagrams, integration diagrams, architecture diagrams, state diagrams, sequence diagrams, and navigation diagrams produced during design
-- Organized with clear headings per diagram type
-- Each diagram labeled with which task(s) it relates to
-
-The plan file MUST start with this header:
+Write to `docs/plans/YYYY-MM-DD-<topic>-plan.md` with this header:
 
 ```markdown
 # [Feature Name] Implementation Plan
@@ -284,7 +260,63 @@ The plan file MUST start with this header:
 ---
 ```
 
-Commit all three files to git.
+**Why now:** The plan file can be large (especially with many tasks). Save it before review so context is freed. Phase 5 reads it back from disk.
+
+**GATE:** Do not proceed to review until the plan file is saved.
+
+## Phase 5: PLAN REVIEW
+
+<IMPORTANT>
+The plan review presented to the user must be **brief, code-free, and easy to read.** The user may not be a developer. Do NOT include code snippets, file contents, or technical implementation details in the review summary. Focus on WHAT is changing and WHY.
+</IMPORTANT>
+
+### Internal validation (do silently, fix issues before presenting)
+
+Read the saved plan file back from disk. Check for:
+
+1. **Missing error handling** — Every external call, user input, and file operation has a failure path
+2. **Missing tests** — Every acceptance criterion has a corresponding test (both positive and negative)
+3. **Unclear acceptance criteria** — Nothing subjective ("should work well"), everything verifiable
+4. **Context gaps** — Tasks reference information not included in that task
+5. **Ordering issues** — Dependencies are explicit and correct
+6. **Conflicting criteria** — No two acceptance criteria (within a task or across tasks) contradict each other
+7. **Missing end-user simulation** — User-facing tasks have tests that simulate real user journeys
+8. **Missing negative tests** — Security-sensitive or input-handling tasks have "should NOT" test cases
+9. **Framework constraint compliance** — If Phase 2b identified constraints, tasks follow them
+10. **Risk distribution** — High-risk tasks have proportionally more thorough test coverage
+
+If issues found: fix them in the saved plan file and re-validate. Repeat until clean.
+
+### Present to user (brief, no code)
+
+Present the plan review as a concise summary for each task:
+
+```markdown
+**Task N: [Name]** (Complexity: X | Risk: X)
+- **What:** [One sentence — what this task builds or changes]
+- **Why:** [One sentence — why it's needed]
+- **Key details:** [Any important notes — dependencies, risk factors, things the user should know]
+```
+
+Follow with a brief overall summary:
+- Total tasks and estimated complexity distribution
+- Any recommendations or trade-offs the user should be aware of
+- Diagram references ("see wireframes doc for screen layouts")
+
+**GATE:** User confirms the plan is ready.
+
+## Phase 6: FINALIZE
+
+All three files should already be saved from earlier phases:
+
+1. `docs/plans/YYYY-MM-DD-<topic>-design.md` (saved after Phase 2)
+2. `docs/plans/YYYY-MM-DD-<topic>-wireframes.md` (saved after Phase 2, if applicable)
+3. `docs/plans/YYYY-MM-DD-<topic>-plan.md` (saved after Phase 4)
+
+Final steps:
+1. Verify all three files are saved and consistent
+2. Commit all files to git (if not already committed individually)
+3. Present file paths to user
 
 **Offer execution choice:**
 - **This session:** Invoke `execute` skill now
@@ -307,3 +339,4 @@ Commit all three files to git.
 | "I know what looks good here" | Study the existing app first. Match its visual language — don't introduce new patterns, emojis, or styles that don't exist in the current UI. |
 | "The user will figure out the technical details" | Present the plan review without code. The user needs to understand WHAT and WHY, not HOW. |
 | "This is fine as-is, no recommendation needed" | If a better approach exists, say so. The user relies on expert guidance. |
+| "I'll save everything at the end" | Save artifacts as each phase completes. Holding everything in memory risks context exhaustion. |
