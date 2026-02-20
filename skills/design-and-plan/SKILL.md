@@ -52,6 +52,15 @@ digraph process {
 
 **Create a task for each phase** and complete them in order.
 
+## Making Recommendations
+
+Throughout all phases, **proactively recommend best practices** based on coding, architecture, and design knowledge. Do not wait for the user to ask. If a design decision would benefit from a specific pattern, a more scalable approach, or a known best practice — say so and explain why. The user is relying on expert guidance, not just transcription of their ideas.
+
+Examples:
+- "I'd recommend using a context provider here instead of prop drilling, because..."
+- "This data flow would benefit from optimistic updates to keep the UI responsive..."
+- "Based on the existing codebase patterns, this should follow the same service layer structure as..."
+
 ## Phase 1: EXPLORE
 
 Gather project context before asking a single question:
@@ -60,6 +69,7 @@ Gather project context before asking a single question:
 - Understand existing patterns and architecture
 - Identify constraints and dependencies
 - Identify the project's tech stack and any framework-specific conventions (React, React Native, Vue, etc.)
+- **Study existing UI patterns** — note current styling, component conventions, icon usage, color schemes, and whether emojis are used in the UI. New designs must match existing visual language.
 
 **GATE:** Present a brief summary of what you found. Do not proceed until user confirms you have the right context.
 
@@ -76,10 +86,12 @@ Work through the design collaboratively:
 
 If the feature involves UI or user-facing changes:
 
-1. Propose the layout structure using component trees, ASCII wireframes, or descriptive mockups
-2. Define interaction flows: what the user does → what the system responds
-3. Identify states: loading, empty, error, success, partial data
-4. Get user approval on the visual structure before proceeding
+1. **Invoke the `ui-ux-pro-max` skill** to guide visual design decisions (layout, typography, color, spacing, interaction patterns)
+2. **Match the existing app's visual language** — study current screens, components, and styling before proposing anything new. If the app doesn't use emojis, don't introduce them. If it uses a specific icon library, use that. Match existing spacing, fonts, and color patterns.
+3. Propose the layout structure using component trees, ASCII wireframes, or descriptive mockups
+4. Define interaction flows: what the user does → what the system responds
+5. Identify states: loading, empty, error, success, partial data
+6. Get user approval on the visual structure before proceeding
 
 Skip this substep for backend-only, infrastructure, or non-visual features.
 
@@ -93,7 +105,32 @@ If the project uses a specific framework (React, React Native, Vue, Svelte, etc.
 
 These constraints are included in the design doc under a **"Framework Constraints"** section.
 
-**GATE:** User explicitly approves the complete design before proceeding.
+### 2c: Wireframes and Diagrams
+
+Create visual documentation to align understanding between AI and user. This is saved as a **separate file** (see Phase 6).
+
+**For every design, produce the relevant diagram types:**
+
+**Always include (when applicable):**
+- **Wireframes** — ASCII or descriptive layout mockups for every new/modified screen or component. Show element placement, hierarchy, and spacing. Include all states (loading, empty, error, success, partial data).
+- **User flow diagrams** — Step-by-step paths a user takes through the feature. Show decision points, branches, and endpoints.
+
+**Include when the change involves system interactions:**
+- **Data flow diagrams** — How data moves between components, services, APIs, and storage. Show request/response patterns.
+- **Integration diagrams** — How the new feature connects to existing systems, APIs, databases, and third-party services. Show boundaries and protocols.
+- **Architecture diagrams** — Component-level view of how new pieces fit into the existing system structure.
+
+**Include when helpful for the specific design:**
+- **State transition diagrams** — For features with complex state (e.g., order status, multi-step flows, connection states)
+- **Sequence diagrams** — For multi-step interactions between user, frontend, backend, and external services
+- **Navigation flow diagrams** — For changes affecting app navigation structure or tab architecture
+- **Error handling flow** — For features with multiple failure modes showing how each error is handled and what the user sees
+
+**Diagram format:** Use ASCII art, Mermaid syntax, or structured markdown tables. Keep diagrams readable — the goal is alignment with the user, not technical precision.
+
+**Present each diagram to the user** and get approval before proceeding. The user may not be technical — diagrams should be understandable without coding knowledge.
+
+**GATE:** User explicitly approves the complete design (including all diagrams) before proceeding.
 
 ## Phase 3: GAP ANALYSIS
 
@@ -173,7 +210,13 @@ Break the design into implementation tasks. Each task MUST be self-contained:
 
 ## Phase 5: PLAN REVIEW
 
-Read the entire plan back and check for:
+<IMPORTANT>
+The plan review presented to the user must be **brief, code-free, and easy to read.** The user may not be a developer. Do NOT include code snippets, file contents, or technical implementation details in the review summary. Focus on WHAT is changing and WHY.
+</IMPORTANT>
+
+### Internal validation (do silently, fix issues before presenting)
+
+Check the full plan for:
 
 1. **Missing error handling** — Every external call, user input, and file operation has a failure path
 2. **Missing tests** — Every acceptance criterion has a corresponding test (both positive and negative)
@@ -186,16 +229,38 @@ Read the entire plan back and check for:
 9. **Framework constraint compliance** — If Phase 2b identified constraints, tasks follow them
 10. **Risk distribution** — High-risk tasks have proportionally more thorough test coverage
 
-If issues found: fix them and review again. Repeat until clean.
+Fix any issues found before presenting to the user. Repeat until clean.
 
-**GATE:** Present the review findings to the user. User confirms the plan is ready.
+### Present to user (brief, no code)
+
+Present the plan review as a concise summary for each task:
+
+```markdown
+**Task N: [Name]** (Complexity: X | Risk: X)
+- **What:** [One sentence — what this task builds or changes]
+- **Why:** [One sentence — why it's needed]
+- **Key details:** [Any important notes — dependencies, risk factors, things the user should know]
+```
+
+Follow with a brief overall summary:
+- Total tasks and estimated complexity distribution
+- Any recommendations or trade-offs the user should be aware of
+- Diagram references ("see wireframes doc for screen layouts")
+
+**GATE:** User confirms the plan is ready.
 
 ## Phase 6: SAVE
 
-Save two files:
+Save three files:
 
 1. **Design doc:** `docs/plans/YYYY-MM-DD-<topic>-design.md`
-2. **Implementation plan:** `docs/plans/YYYY-MM-DD-<topic>-plan.md`
+2. **Wireframes and diagrams:** `docs/plans/YYYY-MM-DD-<topic>-wireframes.md`
+3. **Implementation plan:** `docs/plans/YYYY-MM-DD-<topic>-plan.md`
+
+The **wireframes file** contains all visual documentation from Phase 2c:
+- All wireframes, flow diagrams, integration diagrams, architecture diagrams, state diagrams, sequence diagrams, and navigation diagrams produced during design
+- Organized with clear headings per diagram type
+- Each diagram labeled with which task(s) it relates to
 
 The plan file MUST start with this header:
 
@@ -205,6 +270,8 @@ The plan file MUST start with this header:
 > **For Claude:** Use the `execute` skill (from deep-planning) to implement this plan.
 
 **Design doc:** `docs/plans/YYYY-MM-DD-<topic>-design.md`
+
+**Wireframes:** `docs/plans/YYYY-MM-DD-<topic>-wireframes.md`
 
 **Goal:** [One sentence]
 
@@ -217,7 +284,7 @@ The plan file MUST start with this header:
 ---
 ```
 
-Commit both files to git.
+Commit all three files to git.
 
 **Offer execution choice:**
 - **This session:** Invoke `execute` skill now
@@ -236,3 +303,7 @@ Commit both files to git.
 | "Negative tests are overkill" | Negative tests catch security holes and permission bugs. Always include them. |
 | "The user can test it manually" | End-user simulation tests automate what the user would check. Don't skip them. |
 | "Tests will slow down the plan" | Tests that catch missing implementations save hours of debugging. Plan them now. |
+| "I'll skip the wireframes for this one" | Wireframes catch layout misunderstandings before any code is written. Always include them for UI work. |
+| "I know what looks good here" | Study the existing app first. Match its visual language — don't introduce new patterns, emojis, or styles that don't exist in the current UI. |
+| "The user will figure out the technical details" | Present the plan review without code. The user needs to understand WHAT and WHY, not HOW. |
+| "This is fine as-is, no recommendation needed" | If a better approach exists, say so. The user relies on expert guidance. |

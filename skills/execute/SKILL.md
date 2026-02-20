@@ -230,11 +230,13 @@ After the PR is created (or merged) and all validation is complete:
    ```bash
    mkdir -p docs/plans/completed
    ```
-2. Move both the plan file and the design doc to the archive:
+2. Move all plan files to the archive (plan, design doc, and wireframes):
    ```bash
    git mv docs/plans/YYYY-MM-DD-<topic>-plan.md docs/plans/completed/
    git mv docs/plans/YYYY-MM-DD-<topic>-design.md docs/plans/completed/
+   git mv docs/plans/YYYY-MM-DD-<topic>-wireframes.md docs/plans/completed/
    ```
+   Note: The wireframes file may not exist for backend-only features. Only move files that exist.
 3. Commit the archive move:
    ```bash
    git commit -m "chore: archive completed plan — [topic]"
