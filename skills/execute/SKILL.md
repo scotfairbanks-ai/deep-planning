@@ -72,6 +72,8 @@ Before starting any task, verify:
 - [ ] Test runner works (`npm test`, `pytest`, etc. — run and confirm it executes)
 - [ ] Worktree or feature branch is set up (not on main/master)
 - [ ] Plan file has the required header (Goal, Architecture, Tech stack, Design doc path)
+- [ ] Baseline test results captured: run full test suite, record pass/fail/skip counts (e.g., "Baseline: 142 pass, 0 fail, 3 skip"). After each task, no NEW failures allowed — compare against this baseline.
+- [ ] If plan is more than 48 hours old, verify key assumptions in the design doc still hold (API formats, package versions, service availability)
 
 If any check fails, fix it before proceeding. Do not start execution with a broken environment.
 
@@ -93,9 +95,11 @@ Never start implementation on main/master without explicit user consent.
 
 For each task:
 
-### 3.0: Record Checkpoint
+### 3.0: Pre-Task Checks
 
-Before dispatching the implementer, record the current git SHA:
+**Dependency validation:** Before starting each task, verify that all tasks listed in its "Dependencies" field have COMPLETE markers in the plan file. If a dependency was rolled back, STOP and escalate — the dependent task cannot proceed on a broken foundation.
+
+**Record checkpoint:** Before dispatching the implementer, record the current git SHA:
 
 ```bash
 TASK_N_PRE_SHA=$(git rev-parse HEAD)
@@ -115,6 +119,20 @@ Dispatch a `general-purpose` Task agent using `./implementer-prompt.md` template
 
 The subagent reads everything else directly. This eliminates information loss.
 
+### Subagent Turn Limits
+
+When dispatching subagents via the Task tool, set `max_turns` to prevent hangs:
+
+| Subagent | max_turns |
+|----------|-----------|
+| Implementer | 30 |
+| Spec reviewer | 15 |
+| Quality reviewer | 15 |
+| Framework reviewer | 15 |
+| Drift check | 10 |
+
+If a subagent hits its turn limit without completing, treat as a failure and follow the retry policy.
+
 ### 3b: Spec Review
 
 Dispatch a `general-purpose` Task agent using `./spec-reviewer-prompt.md` template.
@@ -127,7 +145,7 @@ The spec reviewer reads the plan file, finds the task's acceptance criteria, and
 
 **Only after spec review passes.** Dispatch a `general-purpose` Task agent using `./quality-reviewer-prompt.md` template.
 
-Reviews code quality, error handling, test quality, and adherence to existing patterns.
+Reviews code quality, error handling, test quality, adherence to existing patterns, and verifies that only files in the task's scope were modified.
 
 **If critical or important issues found:** Dispatch a new implementer to fix, then re-run quality review.
 
@@ -212,12 +230,28 @@ When a drift check finds divergence and the user approves it as intentional:
 
 Do NOT allow the design doc and implementation to remain out of sync — this makes future drift checks unreliable.
 
+### Cumulative Drift Awareness
+
+If the design doc has a "Design Revisions" section with prior approved changes, the drift check subagent will compare against both the current design AND the original design (before revisions). This tracks cumulative drift — each individual change may be approved, but the aggregate might be a significant departure from the original vision. If cumulative drift is significant, the user should understand how far the implementation has moved.
+
 ## Step 5: Finish
 
-After all tasks complete:
+After completing what you believe is the last task, run the post-execution verification before finishing.
+
+### Post-Execution Verification (mandatory)
+
+1. **Re-read the entire plan file from disk** — do not rely on memory
+2. **Count verification:**
+   - Count total tasks defined in the plan (by counting `### Task N:` headers)
+   - Count tasks with `**Status:** COMPLETE` markers
+   - Assert counts are equal
+   - If mismatch: list specific task numbers missing COMPLETE markers and execute them before proceeding
+3. **Do NOT proceed to PR creation until counts match**
+
+### Finish Steps
 
 1. Run full test suite (final comprehensive pass)
-2. Verify all tasks are marked complete in the plan file
+2. Verify post-execution verification passed (counts match)
 3. If `superpowers:verification-before-completion` is available, use it
 4. If `superpowers:finishing-a-development-branch` is available, use it
 5. Otherwise: create PR, present summary to user
@@ -252,7 +286,11 @@ If a session is interrupted (crash, context limit, user absence):
 2. Scan for completion markers (`**Status:** COMPLETE`)
 3. Find the first task WITHOUT a completion marker — this is where to resume
 4. Verify the git state matches the last completed task's SHA
-5. Continue execution from the incomplete task
+5. **Check for partial work on the incomplete task:**
+   - Search git log for commits mentioning the incomplete task number
+   - If commits exist but no COMPLETE marker: the task was partially completed — route to **spec review first** (not implementer). If spec review passes, continue with quality review → framework review → regression. If spec review fails, dispatch implementer to fix specific issues only.
+   - If no commits exist for the incomplete task: start fresh with implementer
+6. Continue execution from the incomplete task
 
 ## Red Flags
 
@@ -267,6 +305,9 @@ If a session is interrupted (crash, context limit, user absence):
 | Regression tests fail after task completes | Current task broke previous work. Fix before next task. |
 | Review loops exceed retry policy | Stop. Escalate to user. Something fundamental is wrong. |
 | Plan file has no completion markers | Either this is a fresh start or markers were lost. Verify with git log. |
+| Task count doesn't match COMPLETE count at finish | Tasks were skipped. Re-read the plan file and execute missing tasks before creating PR. |
+| Commits exist for a task but no COMPLETE marker | Partial completion from interrupted session. Route to spec review, not fresh implementation. |
+| Subagent hits turn limit | Treat as failure. Follow retry policy. Do not dispatch the same subagent again without changes. |
 
 ## Never
 
@@ -281,3 +322,6 @@ If a session is interrupted (crash, context limit, user absence):
 - Exceed retry policy without user consultation
 - Use `git reset --hard` for rollback (use `git revert` instead)
 - Leave the plan file without completion markers after a task passes
+- Finish without verifying task count matches COMPLETE marker count
+- Skip dependency validation when resuming after a rollback
+- Dispatch subagents without setting max_turns

@@ -49,6 +49,11 @@ You are reviewing code quality for a task that has already passed spec complianc
 - Each test can run independently
 - Test cleanup is proper (no leaked resources, no side effects)
 
+**Scope check:**
+- Verify that modified files match the task's Files section
+- Flag any unexpected file changes as scope creep (Important severity)
+- Changes outside the task's declared scope indicate the implementer worked beyond their mandate
+
 **Security (if applicable):**
 - No hardcoded secrets or credentials
 - User input is validated at boundaries

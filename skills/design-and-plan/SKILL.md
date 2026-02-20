@@ -93,6 +93,7 @@ Work through the design collaboratively:
 2. Once you understand the requirements, propose **2-3 approaches** with trade-offs and your recommendation
 3. Present the chosen design in sections, get user approval after each section
 4. Cover: architecture, components, data flow, error handling
+5. **Number design elements** for traceability — each architectural component, data flow, error strategy, and UI screen gets an ID (e.g., D1, D2, D3). Tasks in Phase 4 reference these IDs to ensure full coverage.
 
 ### 2a: Visual Design (for user-facing features)
 
@@ -156,28 +157,87 @@ Create visual documentation to align understanding between AI and user. Pick the
 
 For backend-only features with no diagrams, skip the wireframes file.
 
-## Phase 3: GAP ANALYSIS
+## Phase 3: GAP & EDGE CASE ANALYSIS
 
-Two mandatory review passes over the approved design. Refer to the saved design doc by path if needed — don't re-read the whole file into context.
+Iterative stress-testing through independent subagent analysis. Each pass uses a fresh subagent that explores both the design doc AND the actual codebase — no knowledge of previous findings, eliminating anchoring bias. The design doc is progressively hardened until it stabilizes.
 
-Present findings after each pass and get user input.
+### Flow
 
-**Pass 1 — Edge cases and error states:**
-- What inputs can be invalid? How are they handled?
-- What external dependencies can fail? What's the fallback?
-- What happens under concurrent access, partial failure, timeout?
-- What data can be missing, malformed, or stale?
+```dot
+digraph gap_analysis {
+    rankdir=TB;
 
-**Pass 2 — Integration points and dependencies:**
-- What existing behavior could this break?
-- What's the data flow between new and existing components?
-- Are there race conditions between new and existing code?
-- What needs to change in tests, config, or deployment?
-- Are any acceptance criteria potentially conflicting with each other?
+    "Dispatch Analyzer 1" [shape=box];
+    "Orchestrator fixes design doc" [shape=box];
+    "Dispatch Analyzer 2" [shape=box];
+    "Orchestrator fixes design doc again" [shape=box];
+    "Any CRITICAL findings?" [shape=diamond];
+    "Dispatch Analyzer N" [shape=box];
+    "Orchestrator fixes" [shape=box];
+    "Any CRITICAL? (N)" [shape=diamond];
+    "Pass count >= 5?" [shape=diamond];
+    "Present all findings to user" [shape=box];
+    "STOP — design needs user redesign" [shape=doublecircle];
 
-**After gap analysis:** Update the saved design doc with any new requirements or changes. Commit the update.
+    "Dispatch Analyzer 1" -> "Orchestrator fixes design doc";
+    "Orchestrator fixes design doc" -> "Dispatch Analyzer 2";
+    "Dispatch Analyzer 2" -> "Orchestrator fixes design doc again";
+    "Orchestrator fixes design doc again" -> "Any CRITICAL findings?";
+    "Any CRITICAL findings?" -> "Present all findings to user" [label="none"];
+    "Any CRITICAL findings?" -> "Dispatch Analyzer N" [label="critical found"];
+    "Dispatch Analyzer N" -> "Orchestrator fixes";
+    "Orchestrator fixes" -> "Any CRITICAL? (N)";
+    "Any CRITICAL? (N)" -> "Present all findings to user" [label="none"];
+    "Any CRITICAL? (N)" -> "Pass count >= 5?" [label="critical found"];
+    "Pass count >= 5?" -> "STOP — design needs user redesign" [label="yes"];
+    "Pass count >= 5?" -> "Dispatch Analyzer N" [label="no"];
+}
+```
 
-**GATE:** User reviews and approves all gap analysis findings.
+### Process
+
+**Pass 1 (mandatory):**
+1. Dispatch gap-analysis subagent (`./gap-analyzer-prompt.md`) with design doc and wireframes paths
+2. Review findings. Fix ALL critical and important findings by updating the design doc
+3. Save updated design doc to disk. Commit.
+
+**Pass 2 (mandatory):**
+1. Dispatch a NEW gap-analysis subagent with the UPDATED design doc path. Fresh context — no awareness of Pass 1.
+2. Review findings. Fix ALL critical and important findings.
+3. Save updated design doc. Commit.
+4. **Convergence check:** Did this pass return any CRITICAL findings?
+
+**Pass 3+ (conditional — only if critical findings persist):**
+1. Dispatch another NEW subagent with the latest design doc
+2. Fix findings, save, commit
+3. Check: any CRITICAL findings?
+   - No → design has stabilized, proceed
+   - Yes → loop again
+
+**Ceiling:** Maximum 5 total passes. If critical findings persist after 5 passes, STOP and escalate to the user. The design has a fundamental issue that needs human redesign, not more iteration.
+
+### Between passes: what the orchestrator does
+
+The orchestrator's job between passes is lightweight and specific:
+1. **Read** the subagent's findings
+2. **Update the design doc** to address critical/important findings — add error handling requirements, specify fallback behaviors, add missing states, clarify ambiguous decisions
+3. **Save** the updated design doc to disk and commit
+4. **Track** a running count of passes and a cumulative finding log (compact — just finding titles and severities)
+5. **Dispatch** the next subagent
+
+The orchestrator does NOT re-analyze. It applies fixes and moves on. All analytical work happens in subagent context.
+
+### Present to user
+
+After convergence, present a deduplicated summary across all passes:
+- How many passes were needed to reach convergence
+- Key critical findings that were fixed (and how)
+- Remaining IMPORTANT/MINOR findings for user awareness
+- Any patterns across passes (e.g., "security gaps kept appearing — consider a dedicated security review")
+
+**After gap analysis:** Update the saved design doc with a "Gap Analysis Summary" section listing key findings and resolutions. Commit the update.
+
+**GATE:** User reviews and approves gap analysis findings.
 
 ## Phase 4: WRITE PLAN
 
@@ -217,6 +277,22 @@ Break the design into implementation tasks. Each task MUST be self-contained:
 
 **Dependencies:** [Task N-1 must be complete because...]
 ```
+
+### Design coverage matrix
+
+After writing all tasks, create a traceability table mapping every design element to tasks:
+
+```markdown
+| Design ID | Design Element | Design Doc Section | Task(s) | Status |
+|---|---|---|---|---|
+| D1 | Auth middleware | Architecture > Backend | Task 2, Task 5 | Covered |
+| D2 | Error retry logic | Error Handling | Task 4 | Covered |
+| D3 | Profile component | Architecture > Frontend | ??? | **UNCOVERED** |
+```
+
+Every numbered design element (components, flows, error strategies, framework constraints) must map to at least one task. Every gap analysis finding must map to at least one acceptance criterion. **If any element is UNCOVERED, add a task or justify its exclusion to the user.**
+
+Include this matrix in the plan file after the task list.
 
 ### Rules for self-contained tasks
 
@@ -284,8 +360,21 @@ Read the saved plan file back from disk. Check for:
 8. **Missing negative tests** — Security-sensitive or input-handling tasks have "should NOT" test cases
 9. **Framework constraint compliance** — If Phase 2b identified constraints, tasks follow them
 10. **Risk distribution** — High-risk tasks have proportionally more thorough test coverage
+11. **Design coverage** — Every numbered design element (D1, D2, etc.) maps to at least one task. Cross-reference the design doc against the task list. Flag any uncovered elements.
+12. **Gap coverage** — Every finding from Phase 3 gap analysis is addressed by at least one acceptance criterion. If a gap finding has no corresponding criterion, add one or document why it's not applicable.
 
 If issues found: fix them in the saved plan file and re-validate. Repeat until clean.
+
+### Transparency on internal fixes
+
+If internal validation makes any changes to the plan:
+1. Track all modifications made during validation
+2. Present a "Changes made during review" section BEFORE the task summary:
+   - "Added missing error handling criterion to Task 3"
+   - "Clarified ambiguous acceptance criterion in Task 7"
+   - "Added negative test requirement to Task 5"
+   - "Added Task 9 to cover uncovered design element D3"
+3. User must acknowledge these changes as part of the approval gate
 
 ### Present to user (brief, no code)
 
@@ -340,3 +429,7 @@ Final steps:
 | "The user will figure out the technical details" | Present the plan review without code. The user needs to understand WHAT and WHY, not HOW. |
 | "This is fine as-is, no recommendation needed" | If a better approach exists, say so. The user relies on expert guidance. |
 | "I'll save everything at the end" | Save artifacts as each phase completes. Holding everything in memory risks context exhaustion. |
+| "Two gap analysis passes is enough" | If critical findings exist after pass 2, the design hasn't stabilized. Keep iterating until convergence. |
+| "I don't need to check design coverage" | Uncovered design elements are the #1 source of missing tasks. Always verify the coverage matrix. |
+| "The gap findings are already covered by the tasks" | Verify explicitly — don't assume. Check each gap finding against actual acceptance criteria. |
+| "The subagent doesn't need to read the codebase" | A gap analyzer that only reads the design doc is guessing. Codebase exploration finds the highest-value gaps. |

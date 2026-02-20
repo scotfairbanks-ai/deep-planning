@@ -13,6 +13,14 @@ You are checking whether the implementation is still aligned with the original d
 2. Read the implementation plan: `{PLAN_FILE_PATH}`
 3. Read all source files created or modified so far (check git log for the file list)
 
+## Cumulative Drift Awareness
+
+If the design doc has a "Design Revisions" section with prior approved changes:
+1. Compare current implementation against the CURRENT design (with revisions applied)
+2. ALSO compare against the ORIGINAL design intent (before revisions)
+3. Report both: drift from current design AND cumulative drift from original
+4. If cumulative drift is significant, flag it — the user should understand how far the implementation has moved from the original vision, even if each individual change was approved
+
 ## Check For
 
 **Architectural drift:**

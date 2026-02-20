@@ -27,22 +27,26 @@ Combines design exploration and plan writing into **one continuous flow** — no
 2. **Collaborative design** with user approval per section
 3. **Visual design** for UI features (wireframes, component trees, interaction flows)
 4. **Framework constraints** surfaced early (React, React Native, Vue, etc.)
-5. **Mandatory gap analysis** — 2 passes: edge cases/error states, then integration points
+5. **Iterative gap analysis** — independent subagents stress-test the design against the actual codebase, with convergence loop until no critical findings remain
 6. **Self-contained task planning** where every task includes all context needed
 7. **Test strategy per task** — unit tests, end-user simulation tests, and negative tests
-8. **Plan review** that reads back the full plan to catch ambiguity, gaps, and conflicts
+8. **Design coverage matrix** — every design element traces to a task, every gap finding traces to a criterion
+9. **Plan review** with transparency — reads back the full plan, validates coverage, discloses any internal fixes to user
 
 ### `execute`
 
 Runs implementation plans with subagent isolation and quality reviews. Key innovation: **subagents read the plan file directly** instead of receiving paraphrased context from the orchestrator.
 
-- **Pre-execution checklist** verifies the environment before starting
+- **Pre-execution checklist** with baseline test counts and assumption validation
 - **Per-task git SHA checkpoints** enable safe rollback
+- **Dependency validation** before each task and **scope enforcement** during review
 - Per-task pipeline: implementer → spec review → quality review → (framework review) → regression tests
 - **Retry policy with escalation** — no infinite review loops
 - **Cross-task regression testing** catches integration failures immediately
 - **Progress persistence** — completed tasks are marked in the plan file for resumability
-- Every 3 tasks: **drift check** against original design with design doc updates
+- Every 3 tasks: **drift check** against original design with cumulative drift tracking
+- **Post-execution verification** — count-based assertion that all tasks are complete
+- **Partial resume handling** — detects and correctly routes interrupted tasks
 - Hard stops on review failures — no "close enough"
 
 ## Installation
@@ -87,12 +91,12 @@ Each task passes through up to 5 review stages:
 
 | Stage | What It Checks | When |
 |-------|---------------|------|
-| **Implementer** | Builds the feature with TDD | Every task |
+| **Implementer** | Builds the feature with TDD, stays within file scope | Every task |
 | **Spec Reviewer** | Acceptance criteria met, tests validate real behavior | Every task |
-| **Quality Reviewer** | Code quality, error handling, test quality, performance | Every task |
+| **Quality Reviewer** | Code quality, error handling, test quality, scope compliance | Every task |
 | **Framework Reviewer** | Framework-specific patterns, accessibility, composition | UI tasks only |
 | **Regression Tests** | Full test suite — no previous tasks broken | Every task |
-| **Drift Check** | Implementation matches original design | Every 3rd task |
+| **Drift Check** | Implementation matches original design (current + cumulative) | Every 3rd task |
 
 ## Works With
 
@@ -130,7 +134,7 @@ The framework reviewer supports React, React Native, Vue, and general web patter
 
 ## Why This Exists
 
-See [docs/why-this-exists.md](docs/why-this-exists.md) for the detailed analysis of 9 failure modes in multi-skill planning workflows and how Deep Planning addresses each one.
+See [docs/why-this-exists.md](docs/why-this-exists.md) for the detailed analysis of 11 failure modes in multi-skill planning workflows and how Deep Planning addresses each one.
 
 ## License
 

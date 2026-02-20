@@ -74,6 +74,30 @@ The most insidious failure: tests exist and pass, but they don't actually valida
 - **End-user simulation tests** are mandatory for user-facing features, mirroring real user behavior
 - **Fake data is banned** — no Math.random(), no placeholder values, no fabricated formulas
 
+### Failure 10: Silent Coverage Loss at the Design-to-Task Boundary
+
+A design doc describes 15 components, 8 error handling strategies, and 12 interaction flows. The planner creates tasks for most of them — but silently drops a few. Each task passes its own spec review because the spec reviewer only checks the task's acceptance criteria, not whether the design is fully covered. Nobody notices until the feature ships incomplete.
+
+Similarly, gap analysis surfaces edge cases and integration issues that get added to the design doc — but never become acceptance criteria or tasks. The gap was identified but never implemented.
+
+**Solution:** Design-to-task traceability with explicit coverage verification:
+- **Design element numbering** — every component, flow, and strategy in the design gets an ID (D1, D2, D3)
+- **Coverage matrix** — after writing tasks, every design element must map to at least one task. Uncovered elements are flagged.
+- **Gap-to-criteria tracing** — every gap analysis finding must map to at least one acceptance criterion
+- **Plan review validation** — Phase 5 internal validation explicitly checks design coverage and gap coverage before presenting to the user
+- **Transparency** — any changes made during internal validation are disclosed to the user before approval
+
+### Failure 11: Anchoring Bias in Gap Analysis
+
+When the same agent runs multiple gap analysis passes, it anchors to its initial findings. Pass 2 finds issues similar to Pass 1 — not fundamentally different ones. The agent's mental model of the design's weaknesses doesn't shift between passes.
+
+**Solution:** Independent subagent gap analysis with convergence:
+- Each pass dispatches a fresh subagent with no knowledge of previous findings
+- Each subagent explores both the design doc AND the actual codebase (not just the plan)
+- Between passes, the orchestrator fixes critical/important findings and saves the updated design doc
+- Later subagents analyze a progressively stronger design, naturally finding deeper issues
+- The loop continues until no critical findings remain (convergence) or a ceiling is reached (5 passes max → escalate to user)
+
 ## Design Principles
 
 1. **Eliminate transitions, don't enforce them.** If two phases must happen in sequence within the same session, put them in one skill.
@@ -85,3 +109,5 @@ The most insidious failure: tests exist and pass, but they don't actually valida
 7. **Persist progress.** Completed work is recorded in the plan file. Interruptions don't lose progress.
 8. **Test integration continuously.** Don't wait for the end to discover that tasks broke each other.
 9. **Tests must catch real bugs.** A test that passes without the implementation is worse than no test — it provides false confidence.
+10. **Trace design to tasks explicitly.** Every design element must map to a task. Every gap finding must map to a criterion. Coverage matrices catch what intuition misses.
+11. **Fresh eyes beat repeated passes.** Independent subagents with no knowledge of previous findings produce more diverse analysis than the same agent running multiple passes.

@@ -14,6 +14,15 @@ You are implementing a task from an implementation plan.
 3. Read the design doc: `{DESIGN_DOC_PATH}`
 4. Read any existing files mentioned in the task's Files section
 
+## Scope Constraint
+
+ONLY modify files listed in the task's "Files" section. If you discover an issue, bug, or improvement opportunity outside your task scope:
+- Report it in your findings
+- Do NOT fix it
+- The orchestrator will decide if it needs a separate task
+
+Unexpected file changes create noise in reviews and risk regressions. Stay within scope.
+
 ## Before You Begin
 
 If ANYTHING is unclear about:
